@@ -1,0 +1,10 @@
+#!/bin/sh
+'''exec' "/Users/suryapra/Documents/Coursework/Fall 2025/CSE-514-Computer-Networks/CompNetworks-Projects/01-p2p-communication-sim/env-p2p-comm-sim/bin/python3" "$0" "$@"
+' '''
+# -*- coding: utf-8 -*-
+import re
+import sys
+from pip._internal.cli.main import main
+if __name__ == '__main__':
+    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+    sys.exit(main())
