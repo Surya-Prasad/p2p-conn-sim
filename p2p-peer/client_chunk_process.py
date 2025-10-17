@@ -16,7 +16,7 @@ from models.common_models import endpointModel, requestedFileModel
 from models.peer_request_models import RegisterRequest, FileChunkRequest, FileListRequest, FileLocationsRequest, ChunkRegisterRequest
 from models.server_response_models import FileRegisterReply, FileListReply, FileLocationsReply
 
-NUMBER_OF_PIECES = 100
+NUMBER_OF_PIECES = 10
 SERVER_ADDRESS = ('127.0.0.1', 7777)
 DOWNLOAD_DIRECTORY = "complete-files/" 
 
@@ -99,6 +99,28 @@ class Peer:
         if response_data:
             reply = FileRegisterReply.model_validate(response_data)
             print(f"Peer, register_files_with_server: Server response - Status: {reply.status}, Message: {reply.message}")
+    
+    def register_file_with_server(self, file_path: str):
+        self.connect_to_server()
+        if not self.server_conn:
+            print("Peer, register_file_with_server: Not connected to server.")
+            return
+        
+        file_name = os.path.basename(file_path)
+        file_len = os.path.getsize(file_path)
+        
+        register_request = RegisterRequest(
+            endpoint=self.endpoint,
+            number_of_files_to_register=1,
+            files=[requestedFileModel(file_name=file_name, file_len=file_len)]
+        )
+
+        print(f"Peer, register_file_with_server: Registering file {file_name} with server.")
+        self.send_request("REGISTER_REQUEST", register_request)
+        response_data = self.receive_response()
+        if response_data:
+            reply = FileRegisterReply.model_validate(response_data)
+            print(f"Peer, register_file_with_server: Server response - Status: {reply.status}, Message: {reply.message}")
 
 
 
@@ -183,7 +205,7 @@ class Peer:
         print(f"Assembling file {file_name}...")
         
         piece_directory = os.path.join(DOWNLOAD_DIRECTORY, file_name + "_pieces")
-        output_filepath = os.path.join(DOWNLOAD_DIRECTORY, file_name)
+        output_filepath = os.path.join(self.share_dir, file_name)
         with open(output_filepath, 'wb') as output_file:
             for i in range(num_pieces):
                 piece_path = os.path.join(piece_directory, f"{file_name}-part{i}.piece")
@@ -193,7 +215,9 @@ class Peer:
                 else:
                     print(f"Error: Missing piece {i} for file {file_name}. Failed to construct file from pieces.")
                     return
-        print(f"File {file_name} assembled successfully in {DOWNLOAD_DIRECTORY}.")
+        print(f"File {file_name} assembled successfully in {self.share_dir}.")
+        self.register_file_with_server(output_filepath)
+
 
     def leech_chunk(self, peer_endpoint: endpointModel, file_info: requestedFileModel, chunk_index: int):
         try:
@@ -214,8 +238,8 @@ class Peer:
                 # ** TQDM PROGRESS BAR INTEGRATION **
                 
                 with tqdm.tqdm(total=chunk_size_from_peer, 
-                          desc= f"Peer: leech_chunk: Downloading chunk {chunk_index}/{NUMBER_OF_PIECES-1} from {peer_endpoint.peer_ip}", 
-                          unit='B', 
+                          desc= f"Peer: leech_chunk: Downloading chunk {chunk_index}/{NUMBER_OF_PIECES-1} from {peer_endpoint.peer_ip}:{peer_endpoint.peer_port}.", 
+                          unit='b', 
                           unit_scale=True, 
                           leave=False) as progressbar:
                     while len(chunk_data) < chunk_size_from_peer:
@@ -228,10 +252,10 @@ class Peer:
                         progressbar.update(len(packet))
 
                 if hashlib.sha256(chunk_data).hexdigest() != header['hash']:
-                    print(f"Peer: leech_chunk: Piece {chunk_index} from {peer_endpoint.peer_ip} does not have a valid hash. Dropping the piece.")
+                    print(f"Peer: leech_chunk: Piece {chunk_index} from {peer_endpoint.peer_ip}:{peer_endpoint.peer_port} does not have a valid hash. Dropping the piece.")
                     return
 
-                print(f"Peer: leech_chunk: Piece {chunk_index} of {file_info.file_name} received successfully from {peer_endpoint.peer_ip}.")                
+                print(f"Peer: leech_chunk: Piece {chunk_index} of {file_info.file_name} received successfully from {peer_endpoint.peer_ip}:{peer_endpoint.peer_port}.")                
                 self.create_piece_file(file_info, chunk_index, chunk_data)
                 self.register_chunk_with_server(file_info.file_name, chunk_index)
 
@@ -342,7 +366,3 @@ class Peer:
         elif self.mode == 'leech':
             print("Peer: Establishing new Leecher")
             self.leech_menu()
-
-
-                
-
