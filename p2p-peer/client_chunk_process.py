@@ -4,7 +4,6 @@ import threading
 import json
 import os
 import hashlib
-import argparse
 import time
 import tqdm
 import math
