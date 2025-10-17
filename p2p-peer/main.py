@@ -11,7 +11,7 @@ if __name__ == "__main__":
     parser.add_argument('--peer-port', required=True, type=int, help="Port for this peer to listen on.")
     args = parser.parse_args()
 
-    peer = client_chunk_process.PeerClient(
+    peer = client_chunk_process.Peer(
         mode = args.mode,
         share_dir = args.share_dir,
         peer_port = args.peer_port
