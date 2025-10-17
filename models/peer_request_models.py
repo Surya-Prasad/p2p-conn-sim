@@ -25,9 +25,3 @@ class FileChunkRequest(BaseModel):
     file = requestedFileModel
     chunk_indicator: int
 
-
-
-
-
-    
-
