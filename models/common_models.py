@@ -12,3 +12,5 @@ class requestedFileModel(BaseModel):
 class endpointChunkMapModel(BaseModel):
     endpoint: endpointModel
     chunk_indicator_list: list[int]
+
+

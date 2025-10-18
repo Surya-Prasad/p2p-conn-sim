@@ -10,7 +10,7 @@ class FileRegisterReply(BaseModel):
 # Model for FILE_LIST_REPLY
 class FileListReply(BaseModel):
     number_of_files: int
-    files_list: Dict[str,int]
+    files_list: requestedFileModel
 
 
 
