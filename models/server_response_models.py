@@ -10,13 +10,11 @@ class FileRegisterReply(BaseModel):
 # Model for FILE_LIST_REPLY
 class FileListReply(BaseModel):
     number_of_files: int
-    files_list: requestedFileModel
-
-
+    files: List[requestedFileModel]
 
 # Model for FILE_LOCATIONS_REPLY
 class FileLocationsReply(BaseModel):
-    number_of_peers: int
+    peers: int
     chunk_endpoint_map: Dict[str,List]
 
 # Model for CHUNK_REGISTER_REPLY

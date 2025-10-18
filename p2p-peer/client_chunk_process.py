@@ -119,7 +119,6 @@ class Peer:
         if response_data:
             reply = FileRegisterReply.model_validate(response_data)
             print(f"Peer, register_files_with_server: Server response - Status: {reply.status}, Message: {reply.message}")
-    
     """
     Register a single file with the server after leecher completes download.
     Leecher will now become seeder for this file.
@@ -231,6 +230,7 @@ class Peer:
      """
     def register_chunk_with_server(self, file_name, chunk_index):
         # Check if Server Connection exists
+        print("Entered register_chunk_with_server")
         if not self.server_conn:
             print("Peer, register_chunk_with_server: Not connected to server.")
             return
@@ -307,6 +307,7 @@ class Peer:
 
                 print(f"Peer: leech_chunk: Piece {chunk_index} of {file_info.file_name} received successfully from {peer_endpoint.peer_ip}:{peer_endpoint.peer_port}.")                
                 self.create_piece_file(file_info, chunk_index, chunk_data)
+                print("Calling register_chunk_with_server")
                 self.register_chunk_with_server(file_info.file_name, chunk_index)
 
         except Exception as e:
@@ -352,10 +353,12 @@ class Peer:
         file_name = input("Enter the name of the file to download: ")
         self.send_request("FILE_LOCATIONS_REQUEST", FileLocationsRequest(file_name=file_name))
         response = self.receive_response()
+        print(response)
 
         # Get Peers List
         if response and "peers" in response:
             peers_with_file = response["peers"]
+            chunk_endpoint_map = response["chunk_endpoint_map"]
             if not peers_with_file:
                 print("No peers have this file.")
                 return
@@ -377,7 +380,7 @@ class Peer:
             file_info = requestedFileModel(**file_info_dict)
 
             # Rarest Chunk First
-            all_chunks_possessed = [set(chunks) for chunks in peers_with_file.values()]
+            all_chunks_possessed = [set(chunks) for chunks in chunk_endpoint_map.values()]
             chunk_counts = {}
             for i in range(NUMBER_OF_PIECES):
                 count = sum(1 for chunks in all_chunks_possessed if i in chunks)
@@ -389,20 +392,23 @@ class Peer:
             download_threads = []
             for chunk_index in sorted_chunks:
                 # Find the peer that has this chunk
-                peers_with_chunk = [peer_id for peer_id, chunks in peers_with_file.items() if chunk_index in chunks]
+                peers_with_chunk = [peer_id for peer_id, chunks in chunk_endpoint_map.items() if chunk_index in chunks]
+                print(peers_with_chunk)
                 if not peers_with_chunk:
                     # Should never happen -> The file should be present with at least one peer
                     continue
                 
                 # Randomly select a peer from those who have the chunk
-                peer_id = random.choice(peers_with_chunk)
+                peer_id = peers_with_chunk[0]
                 ip, port_str = peer_id.split(":")
+                print(f"Seed: {ip}: {port_str}")
                 peer_endpoint = endpointModel(peer_ip=ip, peer_port=int(port_str))
-
+                print("Starting leech_chunk")
                 thread = threading.Thread(target=self.leech_chunk, args=(peer_endpoint, file_info, chunk_index))
                 download_threads.append(thread)
                 thread.start()
 
+            print("We HERE")
             # Wait for all threads to complete
             for t in download_threads:
                 t.join()
