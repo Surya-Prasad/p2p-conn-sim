@@ -126,7 +126,7 @@ class Peer:
     """
     def register_file_with_server(self, file_path: str):
         # Check if Server Connection exists
-        self.connect_to_server()
+        # self.connect_to_server()
         if not self.server_conn:
             print("Peer, register_file_with_server: Not connected to server.")
             return
@@ -242,6 +242,10 @@ class Peer:
             file_name = file_name
         )
         self.send_request("CHUNK_REGISTER_REQUEST", chunk_register_request)
+        
+        response_data = self.receive_response()
+        if not response_data:
+            print(f"Peer, register_chunk_with_server: No response from server for chunk {chunk_index}")
 
     """
     This function assembles the file from its pieces after all pieces have been downloaded.
