@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from models import server_response_models
 from models.common_models import requestedFileModel
 
-NUMBER_OF_PIECES = 10
+NUMBER_OF_PIECES = 40
 file_database = dict()
 file_metadata = dict()
 registry_lock = threading.Lock()

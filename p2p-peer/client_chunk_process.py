@@ -17,7 +17,7 @@ from models.common_models import endpointModel, requestedFileModel
 from models.peer_request_models import RegisterRequest, FileChunkRequest, FileListRequest, FileLocationsRequest, ChunkRegisterRequest
 from models.server_response_models import FileRegisterReply, FileListReply, FileLocationsReply
 
-NUMBER_OF_PIECES = 10
+NUMBER_OF_PIECES = 40 
 SERVER_ADDRESS = ('127.0.0.1', 7777)
 DOWNLOAD_DIRECTORY = "complete-files/" 
 
