@@ -9,9 +9,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from models import server_response_models
 from models.common_models import requestedFileModel
 
-NUMBER_OF_PIECES = 40
-file_database = dict()
-file_metadata = dict()
+NUMBER_OF_PIECES = 40   #Initialising number of chunks
+file_database = dict()  #Dictionary of file names with their associated peers and the chunks
+file_metadata = dict()  #Dictionary of file names and file lengths
 registry_lock = threading.Lock()
 
 class P2PServer:
@@ -35,10 +35,13 @@ class P2PServer:
             print("Server: Shutting down server.")
         finally:
             self.server_socket.close()
-
+    '''
+    Function to handle all peer requests and send responses
+    '''
     def handle_client(self, conn, addr):
         try:
             while True:
+                '''Retrieve request header and payload'''
                 peer_id = str(addr[0])+":"+str(addr[1])
                 data = conn.recv(4096).decode()
                 if not data:
@@ -48,6 +51,11 @@ class P2PServer:
                 payload = request.get("payload")
 
                 try:
+                    '''
+                    Handling REGISTER_REQUEST 
+                        1) Retrieve and store Peer IP, Peer Port, Number of files,File Names and File Lengths
+                        2) Store File Name, Peer IP, Peer Port and Chunks in dictionary file_database
+                    '''
                     if request_type == "REGISTER_REQUEST":
                         peer_ip = payload.get("endpoint",{}).get("peer_ip")
                         peer_port = payload.get("endpoint",{}).get("peer_port")
@@ -71,6 +79,10 @@ class P2PServer:
                     response = {"status":"502","message":str(e)}
                     conn.sendall(json.dumps(response).encode())
 
+                '''
+                Handling FILE_LIST_REQUEST
+                    1) Returns Number of Files, File Names and File Lengths from file_database and file_metadata
+                '''
                 try:   
                     if request_type == "FILE_LIST_REQUEST":
                         number_of_files = len(file_database.keys())
@@ -79,13 +91,17 @@ class P2PServer:
                         
                         response = server_response_models.FileListReply(
                             number_of_files=number_of_files,
-                            files=files_list_models # Pass the new list here
+                            files=files_list_models
                         )
                         conn.sendall(response.model_dump_json().encode())
                 except Exception as e:
                     response = {"status":"502","message":str(e)}
                     conn.sendall(json.dumps(response).encode())
-                    
+                '''
+                Handles FILE_LOCATIONS_REQUEST
+                    1) Retrieves File Name from request
+                    2) Returns Number of peers for the specific file and the chunks associated with the peer IDs
+                '''
                 try:  
                     if request_type == "FILE_LOCATIONS_REQUEST":
                         file_name = payload.get("file_name")
@@ -96,7 +112,11 @@ class P2PServer:
                 except Exception as e:
                     response = {"status":"502","message":str(e)}
                     conn.sendall(json.dumps(response).encode())
-
+                '''
+                Handles CHUNK_REGISTER_REQUEST
+                    1) Retrieves the chunk indicator, file name, peer IP, peer port from the request
+                    2) Appends the chunk indicator to the attribute in file database for the specified peer ID and filename
+                '''
                 try:  
                     if request_type == "CHUNK_REGISTER_REQUEST":
                         chunk_indicator = payload.get("chunk_indicator")
